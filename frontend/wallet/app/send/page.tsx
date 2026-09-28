@@ -16,7 +16,7 @@ const Server = Horizon.Server
 import { ContactPicker } from '@/components/ContactPicker'
 import { QrScanner } from '@/components/QrScanner'
 import { useInactivityLock } from '@/hooks/useInactivityLock'
-import { parseQrValue } from '@/lib/sep7'
+import { parseQrValue, buildStellarMemo, validateMemo } from '@/lib/sep7'
 import { passkeyErrorMessage } from '@/lib/passkeyAuth'
 
 import { getNativeAssetContractId, getNetwork } from '@/lib/network'
@@ -55,6 +55,7 @@ export default function SendPage() {
   const [recipient, setRecipient]     = useState('')
   const [amount, setAmount]           = useState('')
   const [memo, setMemo]               = useState('')
+  const [memoType, setMemoType]       = useState<string | null>(null)
   const [assetError, setAssetError]   = useState<string | null>(null)
   const [requestedAsset, setRequestedAsset] = useState<{ code?: string; issuer?: string } | null>(() => {
     if (typeof window === 'undefined') return null
@@ -79,11 +80,13 @@ export default function SendPage() {
     const to = q.get('to')
     const amt = q.get('amount')
     const m = q.get('memo')
+    const mt = q.get('memo_type')
     const ast = q.get('asset')
     const astIssuer = q.get('asset_issuer')
     if (to) setRecipient(to)
     if (amt) setAmount(amt)
     if (m) setMemo(m)
+    if (mt) setMemoType(mt)
     if (ast || astIssuer) setRequestedAsset({ code: ast || undefined, issuer: astIssuer || undefined })
   }, [])
   const [txHash, setTxHash]           = useState<string | null>(null)
@@ -149,7 +152,12 @@ export default function SendPage() {
           list
         )
         if (res.status === 'resolved') {
-          setSelectedAsset(res.asset as WalletAsset)
+          setSelectedAsset({
+            code: res.asset.code,
+            issuer: res.asset.issuer,
+            contractId: (res.asset as WalletAsset).contractId || getNativeAssetContractId(),
+            balance: res.asset.balance ?? '0',
+          })
           setAssetError(null)
         } else if (res.status === 'unresolved') {
           setSelectedAsset(null)
@@ -221,13 +229,19 @@ export default function SendPage() {
         setRecipient(parsed.destination)
         if ('amount' in parsed && parsed.amount) setAmount(parsed.amount)
         if ('memo' in parsed && parsed.memo) setMemo(parsed.memo)
+        if ('memoType' in parsed && parsed.memoType) setMemoType(parsed.memoType)
         if ('assetCode' in parsed && parsed.assetCode) {
           const res = resolvePaymentAsset(
             { asset: parsed.assetCode, asset_issuer: parsed.assetIssuer },
             assets
           )
           if (res.status === 'resolved') {
-            setSelectedAsset(res.asset as WalletAsset)
+            setSelectedAsset({
+              code: res.asset.code,
+              issuer: res.asset.issuer,
+              contractId: (res.asset as WalletAsset).contractId || getNativeAssetContractId(),
+              balance: res.asset.balance ?? '0',
+            })
             setAssetError(null)
           } else if (res.status === 'unresolved') {
             setSelectedAsset(null)
@@ -250,6 +264,7 @@ export default function SendPage() {
     if (!validAddress) return false
     if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) return false
     if (!selectedAsset || !!assetError) return false
+    if (memo.trim() && validateMemo(memo, memoType)) return false
     return true
   }
 
@@ -289,9 +304,6 @@ export default function SendPage() {
 
       if (recipient.startsWith('G') && recipient.length === 56) {
         const account = await horizonServer.loadAccount(feePayerKp.publicKey())
-        const sendAsset = selectedAsset?.issuer
-          ? new Asset(selectedAsset.code, selectedAsset.issuer)
-          : Asset.native()
 
         const txBuilder = new TransactionBuilder(account, {
           fee: inclusionFee(),
@@ -299,14 +311,14 @@ export default function SendPage() {
         })
           .addOperation(Operation.payment({
             destination: recipient,
-            asset: sendAsset,
+            asset: Asset.native(),
             amount,
           }))
           .setTimeout(30)
 
-        const memoText = memo.trim()
-        if (memoText) {
-          txBuilder.addMemo(Memo.text(memoText))
+        const stellarMemo = buildStellarMemo(memo, memoType)
+        if (stellarMemo) {
+          txBuilder.addMemo(stellarMemo)
         }
 
         const tx = txBuilder.build()
@@ -358,7 +370,12 @@ export default function SendPage() {
 
       setStep('done')
     } catch (err: unknown) {
-      setErrorMsg(passkeyErrorMessage(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      if (/memo/i.test(msg)) {
+        setErrorMsg(msg)
+      } else {
+        setErrorMsg(passkeyErrorMessage(err))
+      }
       setStep('error')
     } finally {
       endTx()
@@ -577,16 +594,23 @@ export default function SendPage() {
             </div>
 
             <div>
-              <label htmlFor="send-memo" className="vw-fieldlabel">Memo · optional</label>
+              <label htmlFor="send-memo" className="vw-fieldlabel">
+                {memoType ? `Memo (${memoType})` : 'Memo'} · optional
+              </label>
               <input
                 id="send-memo"
                 className="input-field"
                 type="text"
-                placeholder="Add a note for the recipient"
+                placeholder={memoType === 'MEMO_ID' || memoType === 'id' ? 'Add numeric account ID' : 'Add a note for the recipient'}
                 value={memo}
                 onChange={e => setMemo(e.target.value)}
-                maxLength={28}
+                maxLength={memoType === 'MEMO_ID' || memoType === 'id' ? 20 : 28}
               />
+              {memo.trim() && validateMemo(memo, memoType) && (
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,100,100,0.9)', marginTop: '0.375rem', lineHeight: 1.4 }}>
+                  {validateMemo(memo, memoType)}
+                </p>
+              )}
             </div>
 
             <div className="vw-feerow">
@@ -600,7 +624,7 @@ export default function SendPage() {
                 onClick={() => setStep('confirm')}
                 disabled={!validateForm()}
               >
-                Review &amp; sign with passkey
+                Review
               </button>
             </div>
             </div>
@@ -657,7 +681,7 @@ export default function SendPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <Row label="To"      value={`${recipient.slice(0, 8)}...${recipient.slice(-8)}`} mono />
                 <Row label="Amount"  value={`${amount} ${selectedAsset?.code ?? 'XLM'}`} mono />
-                {memo && <Row label="Memo" value={memo} />}
+                {memo && <Row label="Memo" value={memoType ? `${memo} (${memoType})` : memo} />}
                 <Row label="Network" value={network.displayName} />
                 <Row label="Auth"    value="Passkey (WebAuthn)" />
               </div>
@@ -743,13 +767,19 @@ export default function SendPage() {
               setRecipient(parsed.destination)
               if ('amount' in parsed && parsed.amount) setAmount(parsed.amount)
               if ('memo' in parsed && parsed.memo) setMemo(parsed.memo)
+              if ('memoType' in parsed && parsed.memoType) setMemoType(parsed.memoType)
               if ('assetCode' in parsed && parsed.assetCode) {
                 const res = resolvePaymentAsset(
                   { asset: parsed.assetCode, asset_issuer: parsed.assetIssuer },
                   assets
                 )
                 if (res.status === 'resolved') {
-                  setSelectedAsset(res.asset as WalletAsset)
+                  setSelectedAsset({
+                    code: res.asset.code,
+                    issuer: res.asset.issuer,
+                    contractId: (res.asset as WalletAsset).contractId || getNativeAssetContractId(),
+                    balance: res.asset.balance ?? '0',
+                  })
                   setAssetError(null)
                 } else if (res.status === 'unresolved') {
                   setSelectedAsset(null)

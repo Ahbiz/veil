@@ -32,6 +32,7 @@ import {
 import { getNetwork } from './network';
 import { inclusionFee } from './fees';
 import { horizonErrorMessage } from './horizonError';
+import { buildStellarMemo } from './sep7';
 
 // All endpoints follow the ACTIVE network — module-level env consts froze
 // these to testnet and sent mainnet payments at testnet Horizon.
@@ -142,6 +143,7 @@ export async function sendPayment(
   signer: WalletSigner,
   memo?: string,
   asset?: { code: string; issuer: string | null },
+  memoType?: string,
 ): Promise<SendResult> {
   const errors = validateSend(recipient, amount);
   if (errors.recipient) throw new Error(errors.recipient);
@@ -189,9 +191,11 @@ export async function sendPayment(
           : Operation.createAccount({ destination: to, startingBalance: amount.trim() }),
       )
       .setTimeout(30);
-    // Classic memos: only attach for text that fits the 28-byte limit.
-    if (memoText && new TextEncoder().encode(memoText).length <= 28) {
-      builder.addMemo(Memo.text(memoText));
+    if (memoText) {
+      const stellarMemo = buildStellarMemo(memoText, memoType);
+      if (stellarMemo) {
+        builder.addMemo(stellarMemo);
+      }
     }
     const tx = builder.build();
     signer.sign(tx);

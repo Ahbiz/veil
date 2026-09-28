@@ -15,6 +15,7 @@ import { parseQrValue } from '../lib/sep7';
 
 export interface QrScanDetails {
   memo?: string;
+  memoType?: string;
   amount?: string;
   assetCode?: string;
   assetIssuer?: string;
@@ -29,7 +30,7 @@ interface QrScannerProps {
 /**
  * Parse a scanned value into a recipient destination and optional payment details.
  * Accepts a bare G…/C… address or a SEP-7 `web+stellar:pay?...` URI.
- * Extracts memo, amount, asset code, and asset issuer if present.
+ * Extracts memo, memo_type, amount, asset code, and asset issuer if present.
  */
 export function parseScanResult(value: string): { address: string; details?: QrScanDetails } | null {
   const trimmed = value.trim();
@@ -43,6 +44,7 @@ export function parseScanResult(value: string): { address: string; details?: QrS
   if (parsed && 'destination' in parsed && parsed.destination && isValidStellarAddress(parsed.destination)) {
     const details: QrScanDetails = {};
     if ('memo' in parsed && parsed.memo) details.memo = parsed.memo;
+    if ('memoType' in parsed && parsed.memoType) details.memoType = parsed.memoType;
     if ('amount' in parsed && parsed.amount) details.amount = parsed.amount;
     if ('assetCode' in parsed && parsed.assetCode) details.assetCode = parsed.assetCode;
     if ('assetIssuer' in parsed && parsed.assetIssuer) details.assetIssuer = parsed.assetIssuer;

@@ -21,8 +21,8 @@ export const MAX_DEEP_LINK_LENGTH = 7168;
 
 /** Routes reachable from outside the app, and the query parameters each one accepts. */
 export const LINKABLE_ROUTES: Record<string, readonly string[]> = {
-  '/pay': ['to', 'amount', 'asset', 'asset_issuer', 'memo', 'msg', 'uri'],
-  '/send': ['to', 'amount', 'asset', 'asset_issuer', 'memo'],
+  '/pay': ['to', 'amount', 'asset', 'asset_issuer', 'memo', 'memo_type', 'msg', 'uri'],
+  '/send': ['to', 'amount', 'asset', 'asset_issuer', 'memo', 'memo_type'],
   '/receive': ['amount', 'asset', 'asset_issuer'],
   '/create-wallet': [],
 };
@@ -40,6 +40,7 @@ const SEP7_PARAM_MAP: Record<string, string> = {
   asset_code: 'asset',
   asset_issuer: 'asset_issuer',
   memo: 'memo',
+  memo_type: 'memo_type',
   msg: 'msg',
 };
 
@@ -89,7 +90,7 @@ export function resolvePaymentAsset(
     if (nativeHolding) {
       return { status: 'resolved', asset: nativeHolding };
     }
-    return { status: 'resolved', asset: { code: 'XLM', issuer: null, native: true } };
+    return { status: 'resolved', asset: { code: 'XLM', issuer: null, native: true, balance: '0' } };
   }
 
   // Non-native asset (or an asset called XLM with an explicit non-native issuer)

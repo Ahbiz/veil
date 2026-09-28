@@ -59,12 +59,13 @@ export default function SendScreen() {
   const { wallet } = useWallet();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Deep links land here prefilled: `to`, `amount`, `asset`, `asset_issuer`, `memo`.
-  const params = useLocalSearchParams<{ to?: string; amount?: string; asset?: string; asset_issuer?: string; memo?: string }>();
+  // Deep links land here prefilled: `to`, `amount`, `asset`, `asset_issuer`, `memo`, `memo_type`.
+  const params = useLocalSearchParams<{ to?: string; amount?: string; asset?: string; asset_issuer?: string; memo?: string; memo_type?: string }>();
 
   const [recipient, setRecipient] = useState(() => firstValue(params.to));
   const [amount, setAmount] = useState(() => firstValue(params.amount));
   const [memo, setMemo] = useState(() => firstValue(params.memo));
+  const [memoType, setMemoType] = useState(() => firstValue(params.memo_type));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [assetSheet, setAssetSheet] = useState(false);
@@ -306,6 +307,7 @@ export default function SendScreen() {
         signer,
         memo,
         nonNative && selected ? { code: selected.code, issuer: selected.issuer } : undefined,
+        memoType,
       );
       setHash(result.hash);
       setStep('done');
@@ -592,6 +594,7 @@ export default function SendScreen() {
         onScan={(address, details) => {
           setRecipient(address);
           if (details?.memo) setMemo(details.memo);
+          if (details?.memoType) setMemoType(details.memoType);
           if (details?.amount) setAmount(details.amount);
           if (details?.assetCode) {
             const res = resolvePaymentAsset(

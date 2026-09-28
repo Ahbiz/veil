@@ -65,6 +65,26 @@ describe('wallet resolveDeepLink — SEP-7 payment requests', () => {
     expect(query.get('uri')).toBe(uri);
   });
 
+  it('preserves memo_type for standard exchange deposit requests (MEMO_ID)', () => {
+    const uri = `web+stellar:pay?destination=${DESTINATION}&amount=50&memo=123456789&memo_type=MEMO_ID`;
+    const target = resolveDeepLink(uri);
+
+    expect(target.startsWith('/pay?')).toBe(true);
+    const query = new URLSearchParams(target.slice(target.indexOf('?') + 1));
+    expect(query.get('to')).toBe(DESTINATION);
+    expect(query.get('amount')).toBe('50');
+    expect(query.get('memo')).toBe('123456789');
+    expect(query.get('memo_type')).toBe('MEMO_ID');
+  });
+
+  it('forwards memo_type on /send route', () => {
+    expect(
+      resolveDeepLink(
+        `veil://send?to=${DESTINATION}&amount=5&memo=98765&memo_type=MEMO_ID`,
+      ),
+    ).toBe(`/send?to=${DESTINATION}&amount=5&memo=98765&memo_type=MEMO_ID`);
+  });
+
   it('rejects a non-pay SEP-7 operation', () => {
     expect(resolveDeepLink('web+stellar:tx?xdr=AAAA')).toBe(FALLBACK_ROUTE);
   });
@@ -145,6 +165,19 @@ describe('wallet resolvePaymentAsset — code and issuer resolution', () => {
     expect(result.status).toBe('resolved');
     if (result.status === 'resolved') {
       expect(result.asset.code).toBe('XLM');
+    }
+  });
+
+  it('synthesizes native XLM with balance "0" when no native holding exists', () => {
+    const nonNativeOnly = [
+      { code: 'USDC', issuer: ISSUER, balance: '500', name: 'USD Coin' },
+    ];
+    const result = resolvePaymentAsset({ asset: 'XLM' }, nonNativeOnly);
+    expect(result.status).toBe('resolved');
+    if (result.status === 'resolved') {
+      expect(result.asset.code).toBe('XLM');
+      expect(result.asset.balance).toBe('0');
+      expect(Number.isNaN(parseFloat(result.asset.balance!))).toBe(false);
     }
   });
 
