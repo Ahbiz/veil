@@ -84,6 +84,8 @@ export default function SettingsScreen() {
     { key: 'passkeys', title: 'Passkeys', subtitle: 'Devices registered on this wallet', onPress: () => router.push('/settings/passkeys') },
     { key: 'recovery', title: 'Recovery', subtitle: 'Trusted servers to recover access', onPress: () => router.push('/recover') },
     { key: 'lock', title: 'Security & lock', subtitle: 'Auto-lock after inactivity', onPress: () => router.push('/settings/security') },
+    { key: 'privacy', title: 'Privacy', subtitle: 'Private payments and crash reporting', onPress: () => router.push('/settings/privacy') },
+    { key: 'dapps', title: 'Connected dApps', subtitle: 'Sites with permission, and revoke them', onPress: () => router.push('/settings/permissions') },
   ];
 
   // Live notification preferences.
@@ -163,6 +165,7 @@ export default function SettingsScreen() {
       onPress: () => handleNetworkToggle(onTestnet),
       switch: { value: !onTestnet, onChange: (v) => handleNetworkToggle(v) },
     },
+    { key: 'dapps', title: 'Discover dApps', subtitle: 'Browse the Stellar apps Veil can open', onPress: () => router.push('/dapps') },
     { key: 'multisig', title: 'Multisig', subtitle: 'View signers and approval threshold', onPress: () => router.push('/multisig') },
     { key: 'contacts', title: 'Address book', subtitle: 'Saved recipients and labels', onPress: () => router.push('/contacts') },
     { key: 'about', title: 'About', subtitle: 'Version, updates, licences and support', onPress: () => router.push('/settings/about') },

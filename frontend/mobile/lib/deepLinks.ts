@@ -43,9 +43,9 @@ export const MAX_DEEP_LINK_LENGTH = 7168;
  * crafted link cannot smuggle state into a screen that never expected it.
  */
 const LINKABLE_ROUTES: Record<string, readonly string[]> = {
-  '/pay': ['to', 'amount', 'asset', 'asset_issuer', 'memo', 'memo_type', 'msg', 'uri'],
-  '/send': ['to', 'amount', 'asset', 'asset_issuer', 'memo', 'memo_type'],
-  '/receive': ['amount', 'asset', 'asset_issuer'],
+  '/pay': ['to', 'amount', 'asset', 'issuer', 'memo', 'memo_type', 'msg', 'uri'],
+  '/send': ['to', 'amount', 'asset', 'issuer', 'memo', 'memo_type'],
+  '/receive': ['amount', 'asset', 'issuer'],
   '/create-wallet': [],
   // Read-only destinations for launcher shortcuts (`lib/voice/actions.ts`).
   // Exact paths with no parameters: a link can open these screens but cannot
@@ -75,8 +75,11 @@ const SEP7_PARAM_MAP: Record<string, string> = {
   destination: 'to',
   amount: 'amount',
   asset_code: 'asset',
-  asset_issuer: 'asset_issuer',
+  // The issuer travels with the code: without it the code names no one asset (#704/#791).
+  asset_issuer: 'issuer',
   memo: 'memo',
+  // SEP-7 senders may declare the memo kind (text/id/hash/return, #704); the
+  // send flow validates it before submit.
   memo_type: 'memo_type',
   msg: 'msg',
 };
@@ -248,74 +251,3 @@ function resolveSep7Uri(rest: string, originalUri: string): string {
   const separator = target.includes('?') ? '&' : '?';
   return `${target}${separator}uri=${encodeURIComponent(originalUri)}`;
 }
-
-export interface ResolvableAssetHolding {
-  code: string;
-  issuer: string | null;
-  balance?: string;
-  name?: string;
-  native?: boolean;
-}
-
-export type AssetResolutionResult =
-  | { status: 'none' }
-  | { status: 'resolved'; asset: ResolvableAssetHolding }
-  | { status: 'unresolved'; code: string; issuer?: string; error: string };
-
-/**
- * Match a requested asset from a deep link or SEP-7 URI against a wallet's holdings.
- *
- * Security requirement (#704):
- * Asset resolution requires code + issuer.
- * Anyone on Stellar can issue an asset with code "USDC", so a link naming "USDC"
- * without an issuer must NOT resolve to whatever USDC the wallet happens to hold.
- * When a link names an asset the wallet cannot resolve to a specific issuer,
- * we return an unresolved status with an explicit error rather than picking an arbitrary holding.
- */
-export function resolvePaymentAsset(
-  params: { asset?: string; asset_issuer?: string },
-  holdings: ResolvableAssetHolding[]
-): AssetResolutionResult {
-  const code = params.asset?.trim();
-  const issuer = params.asset_issuer?.trim();
-
-  if (!code) {
-    return { status: 'none' };
-  }
-
-  const upperCode = code.toUpperCase();
-
-  // Native XLM has no issuer on Stellar.
-  if (upperCode === 'XLM' && (!issuer || issuer.toLowerCase() === 'native')) {
-    const nativeHolding = holdings.find((h) => h.code.toUpperCase() === 'XLM' && (!h.issuer || h.native));
-    if (nativeHolding) {
-      return { status: 'resolved', asset: nativeHolding };
-    }
-    return { status: 'resolved', asset: { code: 'XLM', issuer: null, native: true, balance: '0' } };
-  }
-
-  // Non-native asset (or an asset called XLM with an explicit non-native issuer)
-  if (!issuer) {
-    return {
-      status: 'unresolved',
-      code,
-      error: `Asset ${code} cannot be resolved to a specific issuer. Anyone can issue an asset called ${code}. Please select an asset explicitly.`,
-    };
-  }
-
-  const matched = holdings.find(
-    (h) => h.code.toUpperCase() === upperCode && h.issuer === issuer
-  );
-
-  if (!matched) {
-    return {
-      status: 'unresolved',
-      code,
-      issuer,
-      error: `Unknown issuer ${issuer} for asset ${code}. You do not hold this asset.`,
-    };
-  }
-
-  return { status: 'resolved', asset: matched };
-}
-
