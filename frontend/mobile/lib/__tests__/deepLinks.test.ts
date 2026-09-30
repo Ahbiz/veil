@@ -3,7 +3,9 @@ import { resolveRequestedAsset } from '../requestedAsset';
 
 const DESTINATION = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 const ISSUER = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
-const UNKNOWN_ISSUER = 'GCZST3QOXDYMRM4BCYV3E4STXQZCVX6Z3DCLJ6222FXXZ55E4Y4WUKY3';
+// A well-formed account that holds no registered asset: the resolver must say
+// so rather than guess from the code (#704).
+const UNKNOWN_ISSUER = 'GB6KGMCJWSWVNWAJI63R2766NDHYQF2KPW3KA7CM4GVXVICLBADECCFN';
 
 describe('resolveDeepLink — veil:// custom scheme', () => {
   it('routes a bare screen link', () => {

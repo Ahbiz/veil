@@ -345,7 +345,7 @@ export default function SendScreen() {
         signer,
         memo,
         nonNative && selected ? { code: selected.code, issuer: selected.issuer } : undefined,
-        memoType,
+        memoType || undefined,
       );
       setHash(result.hash);
       setStep('done');
@@ -593,7 +593,7 @@ export default function SendScreen() {
             <Text style={styles.ctaText}>{step === 'authorizing' ? 'Waiting for passkey…' : 'Submitting…'}</Text>
           </View>
         ) : canSubmit ? (
-          <SlideToConfirm label="Slide to send" onConfirm={handleSend} />
+          <SlideToConfirm label="Slide to send" onConfirm={handleSend} testID="send-submit" />
         ) : (
           <View style={[styles.cta, styles.disabled]} testID="send-submit">
             <Text style={styles.ctaText}>
