@@ -17,10 +17,8 @@
 import { rejectionFromResult } from './networkErrors';
 import {
   Asset,
-  BASE_FEE,
   Contract,
   Horizon,
-  Memo,
   Operation,
   StrKey,
   TransactionBuilder,
