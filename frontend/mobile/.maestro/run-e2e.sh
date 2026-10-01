@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+# Release APK: the JS bundle is inside the app. The debug APK is an Expo
+# dev client and stops on the launcher until a packager is attached.
+adb install -r android/app/build/outputs/apk/release/app-release.apk
 
 # The app pushes /offline whenever NetInfo reports no usable
 # connection, and a freshly booted emulator often has not finished

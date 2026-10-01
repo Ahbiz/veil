@@ -19,8 +19,10 @@ jobs:
   maestro-android:
     name: Maestro — Android emulator
     runs-on: ubuntu-latest
-    # Prebuild plus a Gradle debug build dominates the runtime; the flows
-    # themselves take a few minutes.
+    # Prebuild plus a Gradle release build dominates the runtime; the flows
+    # themselves take a few minutes. Release, not debug: a debug APK is the
+    # Expo dev launcher and sits on "Connect" until Metro is running, so
+    # Maestro never reaches welcome-screen.
     timeout-minutes: 60
 
     defaults:
@@ -53,9 +55,11 @@ jobs:
       - name: Generate the Android project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: frontend/mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Install Maestro
         run: |
