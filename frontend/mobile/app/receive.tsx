@@ -148,8 +148,9 @@ export default function ReceiveScreen() {
   }
 
   async function handleCopy() {
-    if (!shareText) return;
-    await Clipboard.setStringAsync(shareText);
+    if (shareText) {
+      await Clipboard.setStringAsync(shareText);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
   }
