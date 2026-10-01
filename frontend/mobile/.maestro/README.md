@@ -58,12 +58,10 @@ flows cannot leak state into each other and their order never matters. A wiped
 install has no wallet address and no `veil_seen_welcome`, so `app/index.tsx`
 routes it to the welcome screen — that is the fixed starting point.
 
-**Reaching the tabs takes a deep link, for now.** `app/index.tsx` only routes to
-`/dashboard` once a wallet address is in secure storage, and the placeholder
-create-wallet screen does not persist one yet (backlog #25). `open-dashboard.yaml`
-opens `veil://send` to mount the tab navigator and moves across the tab bar from
-there. When registration starts persisting an address, that subflow is the one
-place to change.
+**Reaching the dashboard takes a deep link.** Send and Receive are pushed
+screens, so they have a back chevron and no tab bar. `open-dashboard.yaml`
+opens `veil://dashboard`, which is a registered route, and dismisses the
+first-run tutorial.
 
 **The offline screen is defended against.** `ConnectivityGate` pushes `/offline`
 whenever NetInfo positively reports no usable connection, and a freshly booted

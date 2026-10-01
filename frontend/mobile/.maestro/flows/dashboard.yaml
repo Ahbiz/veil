@@ -12,13 +12,18 @@ tags:
 - runFlow: ../subflows/open-dashboard.yaml
 
 # Dismissed once, it stays dismissed: `veil_seen_tutorial` is persisted, so a
-# return visit must not put the overlay back in the way.
-- tapOn: "Send"
+# return visit must not put the overlay back in the way. Send is a pushed
+# screen; Back is the chevron, and with nothing under it the header returns
+# to the dashboard.
+- tapOn:
+    id: "quick-action-send"
 - assertVisible:
     id: "send-screen"
-- tapOn: "Dashboard"
-- assertVisible:
-    id: "dashboard-screen"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible:
+      id: "dashboard-screen"
+    timeout: 20000
 - assertNotVisible:
     id: "tutorial-overlay"
 
@@ -30,7 +35,11 @@ tags:
 - assertVisible:
     id: "send-screen"
 
-- tapOn: "Dashboard"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible:
+      id: "dashboard-screen"
+    timeout: 20000
 - tapOn:
     id: "quick-action-receive"
 - assertVisible:

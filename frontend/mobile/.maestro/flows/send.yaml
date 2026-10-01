@@ -24,14 +24,16 @@ env:
     id: "send-recipient"
 - inputText: "not-a-stellar-address"
 - hideKeyboard
-- assertVisible: "Enter a valid Stellar address"
+# The message is longer than this prefix. Maestro matches the whole text
+# as a regular expression, so the pattern has to cover the rest of the line.
+- assertVisible: "Enter a valid Stellar address.*"
 
 - tapOn:
     id: "send-recipient"
 - eraseText
 - inputText: ${RECIPIENT}
 - hideKeyboard
-- assertNotVisible: "Enter a valid Stellar address"
+- assertNotVisible: "Enter a valid Stellar address.*"
 
 - tapOn:
     id: "send-amount"

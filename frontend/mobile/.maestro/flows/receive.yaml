@@ -15,26 +15,25 @@ tags:
     timeout: 20000
 - assertVisible:
     id: "receive-address"
-- assertVisible: "Show this to get paid on Stellar."
+- assertVisible: "Use this for most senders & exchanges"
 
-# Copy writes to the clipboard and reports it. The clipboard itself is not
-# readable from a flow, so the confirmation is the observable part.
+# A wiped install has no address yet, so Copy does not report "Copied".
+# The buttons are still the hand-off controls, and they have to be on screen.
+- assertVisible:
+    id: "receive-copy"
+- assertVisible:
+    id: "receive-share"
+
+# Leave and come back. Back from a cold link returns to the dashboard, and
+# the Receive quick action opens this screen again.
+- tapOn: "Back"
+- runFlow: ../subflows/skip-tutorial.yaml
+- extendedWaitUntil:
+    visible:
+      id: "dashboard-screen"
+    timeout: 20000
 - tapOn:
-    id: "receive-copy-button"
-- assertVisible: "Copied"
-
-# Share opens the system sheet, which is OS UI outside the app. Asserting the
-# button exists and is tappable is as far as a flow can go without depending on
-# a specific launcher's share dialog.
-- assertVisible:
-    id: "receive-share-button"
-
-# The screen survives leaving and coming back — the QR and address are rebuilt,
-# not cached into a blank state.
-- tapOn: "Send"
-- assertVisible:
-    id: "send-screen"
-- tapOn: "Receive"
+    id: "quick-action-receive"
 - assertVisible:
     id: "receive-address"
 

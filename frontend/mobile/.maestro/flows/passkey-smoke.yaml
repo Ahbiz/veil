@@ -23,14 +23,14 @@ tags:
 - runFlow: ../subflows/launch-fresh.yaml
 
 - tapOn:
-    id: "welcome-get-started-button"
+    id: "welcome-create"
 - extendedWaitUntil:
     visible:
       id: "create-wallet-screen"
     timeout: 20000
 
 - tapOn:
-    id: "create-wallet-button"
+    id: "create-passkey-button"
 
 # The system credential sheet is drawn by the OS, so it is matched by its text
 # rather than a testID, and it is optional: once registration is real
@@ -51,15 +51,13 @@ tags:
 - tapOn:
     id: "create-wallet-continue-button"
 
-# Relaunch cold. Once the credential is persisted this is where the
-# unlock-with-passkey assertion goes — a passkey that only works in the session
-# that created it is the failure this smoke test exists to catch. Until then the
-# entry router lands back on create-wallet, which at least proves the app
-# restarts cleanly after the prompt.
+# Relaunch cold. The created wallet is in secure storage, so the entry
+# router opens the dashboard. A passkey that only works in the session that
+# created it never gets this far.
 - stopApp
 - launchApp
 - runFlow: ../subflows/dismiss-offline.yaml
 - extendedWaitUntil:
     visible:
-      id: "create-wallet-screen"
+      id: "dashboard-screen"
     timeout: 30000

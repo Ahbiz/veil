@@ -1,18 +1,19 @@
 appId: xyz.veil.wallet
 ---
-# Reach the dashboard tab from a wiped install.
+# Reach the dashboard from a wiped install.
 #
-# `app/index.tsx` only routes to /dashboard once a wallet address exists in
-# secure storage, and the placeholder create-wallet screen does not persist one
-# yet (backlog #25). A deep link into the tab group is the way in until it does:
-# `/send` is `(tabs)/send`, so opening it mounts the tab navigator, and the tab
-# bar carries the rest.
-- openLink: "veil://send"
+# Send and Receive are full-screen flows with a back chevron, not tabs. The
+# tab bar is Wallet / Earn / Swap / Agent / Settings, and it is not on those
+# screens. `veil://dashboard` is a registered link, so it mounts the tab
+# directly. The first visit also raises the tutorial, which covers the screen
+# until Skip is pressed.
+- openLink: "veil://dashboard"
 - extendedWaitUntil:
     visible:
-      id: "send-screen"
+      id: "tutorial-overlay"
     timeout: 20000
-- tapOn: "Dashboard"
 - runFlow: skip-tutorial.yaml
-- assertVisible:
-    id: "dashboard-screen"
+- extendedWaitUntil:
+    visible:
+      id: "dashboard-screen"
+    timeout: 20000

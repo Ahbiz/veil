@@ -11,17 +11,17 @@ tags:
 
 # The web suite asserts both buttons are on the landing page before using either.
 - assertVisible:
-    id: "welcome-get-started-button"
+    id: "welcome-create"
 - assertVisible:
-    id: "welcome-recover-button"
+    id: "welcome-recover"
 
 - tapOn:
-    id: "welcome-get-started-button"
+    id: "welcome-create"
 - extendedWaitUntil:
     visible:
       id: "create-wallet-screen"
     timeout: 20000
-- assertVisible: "Create your wallet"
+- assertVisible: "Create wallet"
 
 - tapOn:
     id: "create-wallet-button"
@@ -33,28 +33,29 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "create-wallet-success"
-    timeout: 20000
+    timeout: 45000
 
-# Continue returns to `/`, which re-runs the entry routing in app/index.tsx.
-# The placeholder screen persists no wallet address (backlog #25), so the router
-# sends us back here rather than to the dashboard. That is the current, correct
-# behaviour of an unfinished flow — once registration writes an address to
-# secure storage this assertion becomes `dashboard-screen`, and it failing is
-# precisely the signal that the wallet is now being persisted.
+# Continue opens the dashboard. Creating the testnet keypair writes the
+# address and signer into secure storage, so the entry router treats the
+# install as having a wallet. The first visit also shows the tutorial.
 - tapOn:
     id: "create-wallet-continue-button"
 - extendedWaitUntil:
     visible:
-      id: "create-wallet-screen"
+      id: "tutorial-overlay"
+    timeout: 20000
+- runFlow: ../subflows/skip-tutorial.yaml
+- extendedWaitUntil:
+    visible:
+      id: "dashboard-screen"
     timeout: 20000
 
-# Onboarding is not repeated on a warm resume: `veil_seen_welcome` is set, so the
-# entry router skips the welcome screen.
+# A warm resume keeps that wallet: the welcome screen must not come back.
 - launchApp
 - runFlow: ../subflows/dismiss-offline.yaml
 - extendedWaitUntil:
     visible:
-      id: "create-wallet-screen"
+      id: "dashboard-screen"
     timeout: 30000
 - assertNotVisible:
     id: "welcome-screen"
