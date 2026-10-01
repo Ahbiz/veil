@@ -20,4 +20,10 @@ for i in $(seq 1 30); do
   sleep 5
 done
 
+# The Pixel launcher ANRs under the release build and leaves a system dialog
+# over the app. Hide those dialogs, and stop the launcher so it is not already
+# wedged when the first flow starts. launch-fresh also taps "Close app".
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell am force-stop com.google.android.apps.nexuslauncher || true
+
 maestro test .maestro --format junit --output maestro-report.xml
