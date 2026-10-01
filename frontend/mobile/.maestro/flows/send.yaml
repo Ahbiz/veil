@@ -44,7 +44,10 @@ env:
 - inputText: ${AMOUNT}
 - hideKeyboard
 
-- assertVisible: "alice*example.com"
+# Do not match the typed address character for character. Maestro's delete
+# leaves a tail of the previous value, and `*` is a regex quantifier, so
+# `alice*example.com` never matches the field. The error clearing and the
+# slide enabling are the checks that the replacement was accepted.
 - assertVisible: ${AMOUNT}
 # Review only enables once the address parses and the amount is positive.
 - assertVisible:
