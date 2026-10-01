@@ -15,6 +15,11 @@ const expoPreset = require('jest-expo/jest-preset');
 module.exports = {
   ...expoPreset,
   setupFiles: [...expoPreset.setupFiles, '<rootDir>/jest.setup.js'],
+  modulePaths: ['<rootDir>/node_modules'],
+  moduleNameMapper: {
+    ...(expoPreset.moduleNameMapper || {}),
+    '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',
+  },
   transformIgnorePatterns: expoPreset.transformIgnorePatterns.map((pattern) =>
     pattern.startsWith('/node_modules/(?!(') ? pattern.replace('(?!(', '(?!(@noble|') : pattern
   ),
