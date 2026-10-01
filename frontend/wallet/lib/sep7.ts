@@ -65,7 +65,6 @@ export function buildSep7Memo(memo: string, memoType?: string | null): Memo {
       throw new Error(`Unknown memo_type: "${memoType}"`)
   }
 }
-}
 
 function toMaybeString(v: string | null | undefined): string | undefined {
   if (v == null) return undefined

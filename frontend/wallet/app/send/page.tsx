@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
-  Keypair, TransactionBuilder, BASE_FEE, Asset, Operation,
+  Keypair, TransactionBuilder, BASE_FEE, Asset, Operation, Memo,
   Contract, rpc as SorobanRpc, nativeToScVal, Horizon,
 } from '@stellar/stellar-sdk'
 import { walletLocal, walletSession } from '@/lib/walletStorage'
