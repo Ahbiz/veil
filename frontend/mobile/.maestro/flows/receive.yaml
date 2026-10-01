@@ -24,16 +24,24 @@ tags:
 - assertVisible:
     id: "receive-share"
 
-# Leave and come back. Back from a cold link returns to the dashboard, and
-# the Receive quick action opens this screen again.
-- tapOn: "Back"
+# Leave and come back. A cold veil://receive is pushed on top of welcome, so
+# Back returns there. The dashboard link is what mounts the tab, and opening
+# receive again must still land on this screen.
+- openLink: "veil://dashboard"
+- extendedWaitUntil:
+    visible:
+      id: "tutorial-overlay"
+    timeout: 20000
 - runFlow: ../subflows/skip-tutorial.yaml
 - extendedWaitUntil:
     visible:
       id: "dashboard-screen"
     timeout: 20000
-- tapOn:
-    id: "quick-action-receive"
+- openLink: "veil://receive"
+- extendedWaitUntil:
+    visible:
+      id: "receive-screen"
+    timeout: 20000
 - assertVisible:
     id: "receive-address"
 

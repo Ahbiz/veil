@@ -12,14 +12,20 @@ tags:
 - runFlow: ../subflows/open-dashboard.yaml
 
 # Dismissed once, it stays dismissed: `veil_seen_tutorial` is persisted, so a
-# return visit must not put the overlay back in the way. Send is a pushed
-# screen; Back is the chevron, and with nothing under it the header returns
-# to the dashboard.
-- tapOn:
-    id: "quick-action-send"
-- assertVisible:
-    id: "send-screen"
-- tapOn: "Back"
+# return visit must not put the overlay back in the way.
+- assertNotVisible:
+    id: "tutorial-overlay"
+
+# Send and Receive are registered links. The balance card's buttons stay on
+# the loading skeleton until a wallet has a balance, so a wiped install
+# reaches those screens by link, not by a quick-action id.
+- openLink: "veil://send"
+- extendedWaitUntil:
+    visible:
+      id: "send-screen"
+    timeout: 20000
+
+- openLink: "veil://dashboard"
 - extendedWaitUntil:
     visible:
       id: "dashboard-screen"
@@ -27,20 +33,8 @@ tags:
 - assertNotVisible:
     id: "tutorial-overlay"
 
-# Quick actions are the dashboard's routes into the two critical paths.
-- assertVisible:
-    id: "quick-actions-grid"
-- tapOn:
-    id: "quick-action-send"
-- assertVisible:
-    id: "send-screen"
-
-- tapOn: "Back"
+- openLink: "veil://receive"
 - extendedWaitUntil:
     visible:
-      id: "dashboard-screen"
+      id: "receive-screen"
     timeout: 20000
-- tapOn:
-    id: "quick-action-receive"
-- assertVisible:
-    id: "receive-screen"
