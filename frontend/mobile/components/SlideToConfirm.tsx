@@ -85,6 +85,10 @@ export function SlideToConfirm({
       // not the thumb — is the stable target: it is present from the first
       // layout and never unmounts.
       testID={testID}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      aria-disabled={disabled}
     >
       <Animated.Text style={[styles.label, { opacity: labelOpacity }]} numberOfLines={1}>
         {label}

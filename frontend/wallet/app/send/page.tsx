@@ -108,8 +108,10 @@ export default function SendPage() {
     const m = q.get('memo')
     // #704: the memo kind travels with the memo; unknown kinds are dropped so
     // submit builds a text memo rather than failing the handoff.
-    const mt = ['text', 'id', 'hash', 'return'].includes((q.get('memo_type') ?? '').toLowerCase())
-      ? (q.get('memo_type') as string)
+    const rawMt = (q.get('memo_type') ?? '').toLowerCase()
+    const normalizedMt = rawMt.startsWith('memo_') ? rawMt.slice(5) : rawMt
+    const mt = ['text', 'id', 'hash', 'return'].includes(normalizedMt)
+      ? normalizedMt
       : null
     if (to) setRecipient(to)
     if (amt) setAmount(amt)
@@ -291,7 +293,7 @@ export default function SendPage() {
     if (!selectedAsset) return false
     // #704: a typed memo must survive submit, whatever kind the request
     // declared — surface the builder's refusal as a disabled submit.
-    if (memo.trim() && validateMemo(memo, memoType)) return false
+    if (memo.trim() && validateMemo(memo, memoType) !== null) return false
     return true
   }
 
@@ -300,6 +302,15 @@ export default function SendPage() {
     setStep('signing')
     setErrorMsg(null)
     try {
+      if (memo.trim()) {
+        const memoErr = validateMemo(memo, memoType)
+        if (memoErr) {
+          setErrorMsg(memoErr)
+          setStep('error')
+          return
+        }
+      }
+
       const signerSecret = walletSession.getItem('veil_signer_secret')
         || walletLocal.getItem('veil_signer_secret')
       if (!signerSecret) {
@@ -331,7 +342,7 @@ export default function SendPage() {
 
       if (recipient.startsWith('G') && recipient.length === 56) {
         const account = await horizonServer.loadAccount(feePayerKp.publicKey())
-        const tx = new TransactionBuilder(account, {
+        const builder = new TransactionBuilder(account, {
           fee: inclusionFee(),
           networkPassphrase: network.networkPassphrase,
         })
@@ -348,7 +359,7 @@ export default function SendPage() {
           // without it, exchange deposits arrive uncredited.
           .addMemo(memo.trim() ? buildStellarMemo(memo, memoType) ?? Memo.none() : Memo.none())
           .setTimeout(30)
-          .build()
+        const tx = builder.build()
         tx.sign(feePayerKp)
         const result = await horizonServer.submitTransaction(tx)
         setTxHash(result.hash)
@@ -627,8 +638,12 @@ export default function SendPage() {
                 placeholder="Add a note for the recipient"
                 value={memo}
                 onChange={e => setMemo(e.target.value)}
-                maxLength={28}
               />
+              {memo && validateMemo(memo, memoType) && (
+                <p style={{ fontSize: '0.75rem', color: '#e5484d', marginTop: '0.375rem', lineHeight: 1.4 }}>
+                  {validateMemo(memo, memoType)}
+                </p>
+              )}
             </div>
 
             <div className="vw-feerow">

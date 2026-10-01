@@ -1,4 +1,4 @@
-import type { Memo } from '@stellar/stellar-sdk'
+import { Memo } from '@stellar/stellar-sdk'
 
 export type Sep7Parsed = {
   destination?: string
@@ -97,16 +97,6 @@ export function buildSep7PayUri(opts: {
   return `web+stellar:pay?${params.toString()}`
 }
 
-function getStellarMemo(): typeof import('@stellar/stellar-sdk').Memo {
-  if (typeof TextEncoder === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { TextEncoder: TE, TextDecoder: TD } = require('util')
-    Object.assign(globalThis, { TextEncoder: TE, TextDecoder: TD })
-  }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require('@stellar/stellar-sdk').Memo
-}
-
 /**
  * Safely parse and build a Stellar SDK Memo instance from a memo value and optional memo type.
  *
@@ -126,12 +116,9 @@ export function buildStellarMemo(memo: string, memoType?: string | null): Memo |
   const lower = rawType.toLowerCase()
   const normalized = lower.startsWith('memo_') ? lower.slice(5) : lower
 
-  const Memo = getStellarMemo()
-
   switch (normalized) {
     case 'text': {
-      const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : new (require('util').TextEncoder)()
-      const bytes = encoder.encode(trimmed)
+      const bytes = new TextEncoder().encode(trimmed)
       if (bytes.length > 28) {
         throw new Error(`Text memo exceeds 28 bytes limit (${bytes.length} bytes).`)
       }

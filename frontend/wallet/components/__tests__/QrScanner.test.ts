@@ -1,3 +1,7 @@
+// @stellar/stellar-sdk needs TextEncoder at module load; jsdom omits it.
+import { TextEncoder, TextDecoder } from 'util'
+Object.assign(globalThis, { TextEncoder, TextDecoder })
+
 import { isValidStellarAddress, isRecognizedQrValue } from '../QrScanner'
 
 describe('isValidStellarAddress', () => {

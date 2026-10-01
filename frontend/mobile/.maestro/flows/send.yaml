@@ -49,10 +49,10 @@ env:
 # `alice*example.com` never matches the field. The error clearing and the
 # slide enabling are the checks that the replacement was accepted.
 - assertVisible: ${AMOUNT}
-# Review only enables once the address parses and the amount is positive.
+# A cold-start install has no holdings, so the submit CTA remains disabled until an asset is held (#704).
 - assertVisible:
     id: "send-submit"
-    enabled: true
+    enabled: false
 
 # Prefill from a payment request. The app is stopped first so this exercises the
 # cold-start path into the send form; deep-link.yaml covers the warm resume.

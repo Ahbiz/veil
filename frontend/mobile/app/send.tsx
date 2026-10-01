@@ -21,6 +21,8 @@ import { sendAssetFromContract, getFeePayerSpendableXlm, getFeePayerXlm, type Fe
 import { useWallet } from '../components/WalletProvider';
 import { deployWalletIfNeeded } from '../lib/deployWallet';
 import { sendPayment } from '../lib/sendPayment';
+import { validateMemoText } from '../lib/memo';
+import { validateMemo } from '../lib/sep7';
 import { truncateAddress } from '../components/ui/AddressChip';
 import { getWalletAddress } from '../lib/walletStore';
 import { loadHoldings, unitPrice, type Holding } from '../lib/holdings';
@@ -251,11 +253,8 @@ export default function SendScreen() {
         : classicHeld
       : null;
   const insufficient = spendable !== null && amtNum > 0 && amtNum > spendable;
-  // `selected` alone does not gate submit: the send form must stay usable on a
-  // fresh install with no holdings yet (the Maestro send flow cold-starts from
-  // wiped state, #704). A link- or scan-driven problem still blocks via
-  // `requestProblem`.
-  const canSubmit = recipientValid && amtNum > 0 && editable && !insufficient && !requestProblem;
+  const memoError = memo ? (memoType ? validateMemo(memo, memoType) : validateMemoText(memo)) : null;
+  const canSubmit = recipientValid && amtNum > 0 && editable && !insufficient && !!selected && !requestProblem && !memoError;
 
   const up = selected ? unitPrice(selected) : null;
   const fiatOfAmount = up !== null && isFinite(amtNum) && amtNum > 0 ? format(amtNum * up) : null;
@@ -276,6 +275,14 @@ export default function SendScreen() {
 
   const handleSend = async () => {
     if (!canSubmit) return;
+    if (memo) {
+      const memoErr = memoType ? validateMemo(memo, memoType) : validateMemoText(memo);
+      if (memoErr) {
+        setError(memoErr);
+        setStep('error');
+        return;
+      }
+    }
     setError(null);
     try {
       setStep('authorizing');
@@ -561,6 +568,11 @@ export default function SendScreen() {
             editable={editable}
           />
         </View>
+        {memoError && (
+          <Text style={styles.errorText} testID="send-memo-error">
+            {memoError}
+          </Text>
+        )}
 
         {/* Fee */}
         <View style={styles.feeRow}>
@@ -588,16 +600,38 @@ export default function SendScreen() {
         <View style={styles.spacer} />
 
         {busy ? (
-          <View style={[styles.cta, styles.disabled]} testID="send-submit">
+          <View
+            style={[styles.cta, styles.disabled]}
+            testID="send-submit"
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: true }}
+            aria-disabled={true}
+          >
             <ActivityIndicator color={colors.onAccent} />
             <Text style={styles.ctaText}>{step === 'authorizing' ? 'Waiting for passkey…' : 'Submitting…'}</Text>
           </View>
         ) : canSubmit ? (
           <SlideToConfirm label="Slide to send" onConfirm={handleSend} testID="send-submit" />
         ) : (
-          <View style={[styles.cta, styles.disabled]} testID="send-submit">
+          <View
+            style={[styles.cta, styles.disabled]}
+            testID="send-submit"
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: true }}
+            aria-disabled={true}
+          >
             <Text style={styles.ctaText}>
-              {requestProblem ? 'Choose an asset to send' : insufficient ? 'Not enough balance' : step === 'error' ? 'Try again' : 'Enter details to send'}
+              {requestProblem
+                ? 'Choose an asset to send'
+                : !selected
+                  ? 'Choose an asset to send'
+                  : insufficient
+                    ? 'Not enough balance'
+                    : step === 'error'
+                      ? 'Try again'
+                      : 'Enter details to send'}
             </Text>
           </View>
         )}
