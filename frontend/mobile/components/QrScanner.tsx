@@ -40,7 +40,13 @@ export function parseScanResult(value: string): { address: string; details?: QrS
     return { address: trimmed };
   }
 
-  const parsed = parseQrValue(trimmed);
+  let parsed: ReturnType<typeof parseQrValue> = null;
+  try {
+    parsed = parseQrValue(trimmed);
+  } catch {
+    parsed = null;
+  }
+
   if (parsed && 'destination' in parsed && parsed.destination && isValidStellarAddress(parsed.destination)) {
     const details: QrScanDetails = {};
     if ('memo' in parsed && parsed.memo) details.memo = parsed.memo;

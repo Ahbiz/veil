@@ -5,11 +5,12 @@ tags:
   - onboarding
 ---
 # Ports the web suite's onboarding scenarios (frontend/wallet/e2e/onboarding.spec.ts):
-# the landing screen offers both entry points, starting creation shows the
-# biometric wait state, and the flow ends on a created wallet.
+# the landing screen offers both entry points, starting creation runs the
+# testnet keypair flow, and the finished wallet is persisted — so a relaunch
+# lands on the dashboard rather than back in onboarding.
 - runFlow: ../subflows/launch-fresh.yaml
 
-# The web suite asserts both buttons are on the landing page before using either.
+# The landing offers create and recovery as two separate testIDs.
 - assertVisible:
     id: "welcome-create"
 - assertVisible:
@@ -21,36 +22,34 @@ tags:
     visible:
       id: "create-wallet-screen"
     timeout: 20000
-- assertVisible: "Create wallet"
 
+# The keypair path, not the passkey one — no enrolled biometric on an
+# emulator (see subflows/create-testnet-wallet.yaml for the full reasoning).
 - tapOn:
     id: "create-wallet-button"
 
-# "Waiting for biometric…" is what the web suite asserts on, and it is the only
-# window in which a passkey prompt can appear. It is brief, so assert on the
-# outcome rather than racing the intermediate frame; the prompt itself is
-# covered by passkey-smoke.yaml on a device that can satisfy it.
+# Creation persists the account before it renders the address row, and the
+# friendbot funding round-trip is the slow part of this screen.
 - extendedWaitUntil:
     visible:
-      id: "create-wallet-success"
-    timeout: 45000
+      id: "create-wallet-address"
+    timeout: 90000
 
-# Continue opens the dashboard. Creating the testnet keypair writes the
-# address and signer into secure storage, so the entry router treats the
-# install as having a wallet. The first visit also shows the tutorial.
+# Continue replaces the stack with the dashboard; the first-run tutorial
+# mounts over it and has to be dismissed before the dashboard is reachable.
 - tapOn:
     id: "create-wallet-continue-button"
-- extendedWaitUntil:
-    visible:
-      id: "tutorial-overlay"
-    timeout: 20000
 - runFlow: ../subflows/skip-tutorial.yaml
 - extendedWaitUntil:
     visible:
       id: "dashboard-screen"
     timeout: 20000
 
-# A warm resume keeps that wallet: the welcome screen must not come back.
+# Registration now really persists a wallet (address + signer secret in
+# secure storage), so a warm resume no longer returns to the creation screen:
+# `app/index.tsx` sees a usable signer and routes straight to the dashboard.
+# This is exactly the assertion the old flow said would replace the
+# create-wallet-screen one once registration stored an address.
 - launchApp
 - runFlow: ../subflows/dismiss-offline.yaml
 - extendedWaitUntil:

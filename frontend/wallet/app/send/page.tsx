@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
-  Keypair, TransactionBuilder, BASE_FEE, Asset, Operation, Memo,
+  Keypair, TransactionBuilder, BASE_FEE, Asset, Operation,
   Contract, rpc as SorobanRpc, nativeToScVal, Horizon,
 } from '@stellar/stellar-sdk'
 import { walletLocal, walletSession } from '@/lib/walletStorage'
@@ -21,7 +21,9 @@ import { readPaymentRequest, resolveRequestedAsset, type IssuedAsset } from '@/l
 // text.
 import { buildStellarMemo, validateMemo } from '@/lib/sep7'
 import { getRegisteredAsset } from '@/lib/assets'
+import { buildSep7Memo, type Sep7MemoType } from '@/lib/sep7'
 import { passkeyErrorMessage } from '@/lib/passkeyAuth'
+import { validateMemoText } from '@/lib/memo'
 
 import { getNativeAssetContractId, getNetwork, getNetworkName } from '@/lib/network'
 import { beginTx, endTx } from '@/lib/txState'
@@ -69,8 +71,6 @@ export default function SendPage() {
   const [recipient, setRecipient]     = useState('')
   const [amount, setAmount]           = useState('')
   const [memo, setMemo]               = useState('')
-  /** SEP-7 memo kind (text/id/hash/return) carried with the memo (#704). */
-  const [memoType, setMemoType]         = useState<string | null>(null)
   /**
    * The exact asset a payment request asked for, held until the account's
    * balances load so it can be selected by `code:issuer` rather than lost when
@@ -79,6 +79,19 @@ export default function SendPage() {
   const [requestedAsset, setRequestedAsset] = useState<IssuedAsset | null>(null)
   /** Why the last payment request was refused, in words (#791). */
   const [requestError, setRequestError]     = useState<string | null>(null)
+  /**
+   * SEP-7 `memo_type` for the memo above. A memo of the wrong type is credited
+   * by nobody, so the type travels with the value rather than being assumed
+   * to be text (#817).
+   */
+  const [memoType, setMemoType]       = useState<Sep7MemoType | string | undefined>()
+  /**
+   * Only MEMO_TEXT carries the 28-byte cap. A MEMO_ID is a uint64 and
+   * MEMO_HASH / MEMO_RETURN are 32 raw bytes written as 64 hex (or base64)
+   * characters, so applying the text cap to them would refuse valid links.
+   */
+  const memoIsText = !memoType || String(memoType).toUpperCase().replace(/^MEMO_/, '') === 'TEXT'
+  const memoLengthError = memoIsText ? validateMemoText(memo) : null
 
   /**
    * Prefill from the query string, so another screen can hand off a payment it
@@ -106,9 +119,7 @@ export default function SendPage() {
     const to = q.get('to')
     const amt = q.get('amount')
     const m = q.get('memo')
-    // #704: the memo kind travels with the memo; unknown kinds are dropped so
-    // submit builds a text memo rather than failing the handoff.
-    const rawMt = (q.get('memo_type') ?? '').toLowerCase()
+    const rawMt = (q.get('memo_type') ?? '').toLowerCase().trim()
     const normalizedMt = rawMt.startsWith('memo_') ? rawMt.slice(5) : rawMt
     const mt = ['text', 'id', 'hash', 'return'].includes(normalizedMt)
       ? normalizedMt
@@ -221,12 +232,9 @@ export default function SendPage() {
     const { prefill } = read
     setRecipient(prefill.destination)
     if (prefill.amount) setAmount(prefill.amount)
-    // #704: memo survives scan → review → submit; the memo kind travels with
-    // it so submit builds the right Stellar Memo (unknown kinds were already
-    // rejected by the parser).
     if (prefill.memo) {
       setMemo(prefill.memo)
-      setMemoType(prefill.memoType ?? null)
+      setMemoType(prefill.memoType)
     }
     if (read.asset) {
       setRequestedAsset(read.asset)
@@ -291,8 +299,6 @@ export default function SendPage() {
     if (!validAddress) return false
     if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) return false
     if (!selectedAsset) return false
-    // #704: a typed memo must survive submit, whatever kind the request
-    // declared — surface the builder's refusal as a disabled submit.
     if (memo.trim() && validateMemo(memo, memoType) !== null) return false
     return true
   }

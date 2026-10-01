@@ -2,18 +2,9 @@ appId: xyz.veil.wallet
 ---
 # Reach the dashboard from a wiped install.
 #
-# Send and Receive are full-screen flows with a back chevron, not tabs. The
-# tab bar is Wallet / Earn / Swap / Agent / Settings, and it is not on those
-# screens. `veil://dashboard` is a registered link, so it mounts the tab
-# directly. The first visit also raises the tutorial, which covers the screen
-# until Skip is pressed.
-- openLink: "veil://dashboard"
-- extendedWaitUntil:
-    visible:
-      id: "tutorial-overlay"
-    timeout: 20000
-- runFlow: skip-tutorial.yaml
-- extendedWaitUntil:
-    visible:
-      id: "dashboard-screen"
-    timeout: 20000
+# There is no shortcut any more, and none is needed: registration persists a
+# real wallet, so the dashboard is reached the way a user reaches it — onboard,
+# then Continue. (The previous route here deep-linked `/send` purely because it
+# mounted the tab navigator; Send is a root push route now, and `/dashboard` is
+# not in the deep-link forward list, so neither path exists.)
+- runFlow: create-testnet-wallet.yaml
